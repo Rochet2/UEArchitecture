@@ -7,6 +7,8 @@
 #include "Components/InputComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 #include "GameFramework/Controller.h"
+#include "Pickup.h"
+#include "BatteryPickup.h"
 #include "GameFramework/SpringArmComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -43,8 +45,35 @@ AMyProject5Character::AMyProject5Character()
 	FollowCamera->SetupAttachment(CameraBoom, USpringArmComponent::SocketName); // Attach the camera to the end of the boom and let the boom adjust to match the controller orientation
 	FollowCamera->bUsePawnControlRotation = false; // Camera does not rotate relative to arm
 
+    CollectionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollectionSphere"));
+    CollectionSphere->AttachTo(RootComponent);
+    CollectionSphere->SetSphereRadius(200.0f);
+
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+
+    InitialPower = 2000.0f;
+    CharacterPower = InitialPower;
+
+    SpeedFactor = 0.75f;
+    BaseSpeed = 10.0f;
+}
+
+float AMyProject5Character::GetInitialPower()
+{
+    return InitialPower;
+}
+
+float AMyProject5Character::GetCurrentPower()
+{
+    return CharacterPower;
+}
+
+void AMyProject5Character::UpdatePower(float PowerChange)
+{
+    CharacterPower = CharacterPower + PowerChange;
+    GetCharacterMovement()->MaxWalkSpeed = BaseSpeed + SpeedFactor*CharacterPower;
+    PowerChangeEffect();
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -55,7 +84,7 @@ void AMyProject5Character::SetupPlayerInputComponent(class UInputComponent* Play
 	// Set up gameplay key bindings
 	check(PlayerInputComponent);
 	PlayerInputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
-	PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
+    PlayerInputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
 	PlayerInputComponent->BindAxis("MoveForward", this, &AMyProject5Character::MoveForward);
 	PlayerInputComponent->BindAxis("MoveRight", this, &AMyProject5Character::MoveRight);
@@ -75,7 +104,6 @@ void AMyProject5Character::SetupPlayerInputComponent(class UInputComponent* Play
 	// VR headset functionality
 	PlayerInputComponent->BindAction("ResetVR", IE_Pressed, this, &AMyProject5Character::OnResetVR);
 }
-
 
 void AMyProject5Character::OnResetVR()
 {
